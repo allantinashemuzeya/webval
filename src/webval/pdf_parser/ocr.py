@@ -132,9 +132,11 @@ def get_backend(preference: str = "auto") -> TesseractBackend | RapidBackend | N
     if preference in ("auto", "rapidocr"):
         try:
             return RapidBackend()
-        except ImportError:
+        except Exception as exc:  # ImportError, or onnxruntime binary/DLL issues
             log.warning(
-                "No OCR backend available — install tesseract, or `pip install rapidocr-onnxruntime` "
-                "(pure pip, no admin rights needed)."
+                "RapidOCR fallback unavailable (%s) — install tesseract "
+                "(Windows: winget install UB-Mannheim.TesseractOCR, no admin needed) "
+                "or `pip install rapidocr-onnxruntime`.",
+                exc,
             )
     return None

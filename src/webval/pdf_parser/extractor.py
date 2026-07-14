@@ -131,7 +131,7 @@ class PdfExtractor:
             return ""
 
     @staticmethod
-    def _ocr_callout_regions(gray: "PILImage", backend: object) -> list[str]:
+    def _ocr_callout_regions(gray: PILImage, backend: object) -> list[str]:
         """Locate annotation keywords and re-OCR each callout crop at 3x."""
         from PIL import Image, ImageOps
 
