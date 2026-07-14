@@ -1,0 +1,82 @@
+# ============================================================================
+# webval — default run configuration
+#
+# Everything here can be overridden per-run:
+#   - by a project YAML passed with `--config myproject.yaml`
+#   - by environment variables prefixed WEBVAL_ (nested keys use `__`),
+#     e.g. WEBVAL_AUTH__USERNAME, WEBVAL_AUTH__PASSWORD
+#
+# Credentials MUST come from the environment or a .env file — never commit
+# them into YAML. See .env.example.
+# ============================================================================
+
+site:
+  base_url: "https://usim.preprod.sbx.us.pluvicto.com/"
+  # Restrict the crawl to these hosts (defaults to base_url host if empty)
+  allowed_hosts: []
+  ignore_https_errors: true    # internal/preprod environments with self-signed certs
+  max_pages: 50
+  max_depth: 3
+  # URL substrings to skip during discovery (logout links, mailto handled separately)
+  exclude_patterns:
+    - "logout"
+    - "signout"
+
+auth:
+  mode: "http_basic"           # http_basic | none
+  username: ""                 # from WEBVAL_AUTH__USERNAME
+  password: ""                 # from WEBVAL_AUTH__PASSWORD
+
+browser:
+  engine: "chromium"
+  headless: true
+  timeout_ms: 30000
+  navigation_timeout_ms: 45000
+  slow_mo_ms: 0
+  concurrency: 4               # parallel pages during discovery/read-only validation
+
+devices:                       # Phase 12 — responsive matrix
+  - name: "Desktop Chrome"
+    playwright_device: null    # null => explicit viewport below
+    viewport: { width: 1440, height: 900 }
+  - name: "iPhone 14"
+    playwright_device: "iPhone 14"
+    viewport: null
+  - name: "iPad"
+    playwright_device: "iPad (gen 7)"
+    viewport: null
+
+pdf:
+  ocr_enabled: true            # auto-OCR image-only pages (needs the tesseract binary; degrades gracefully)
+  ocr_dpi: 150
+  extract_images: true
+  min_requirement_length: 12   # ignore fragments shorter than this
+  # Explicit requirement ID patterns recognised in the spec
+  id_patterns:
+    - "\\b(?:REQ|BR|FR|UC|TC)[-_ ]?\\d{1,4}\\b"
+
+validation:
+  content_fuzzy_threshold: 0.87   # difflib ratio => WARNING band below exact match
+  link_timeout_s: 15
+  retry_attempts: 3
+  retry_backoff_s: 1.5
+  external_links: true            # also verify HTTP status of external links
+  performance:
+    lcp_budget_ms: 4000
+    cls_budget: 0.25
+    ttfb_budget_ms: 1800
+  visual:
+    enabled: true
+    hash_distance_warn: 12        # perceptual-hash distance thresholds
+    hash_distance_fail: 24
+
+evidence:
+  root: "runs"                    # runs/<run_id>/evidence/...
+  full_page_screenshots: true
+  keep_dom_snapshots: true
+
+report:
+  title: "Website Validation Report"
+  organization: "QA / Validation"
+  system_under_test: "PLUVICTO USIM (preprod)"
+  formats: ["excel", "html", "json"]

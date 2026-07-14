@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ title }} — {{ manifest.run_id }}</title>
+<style>
+  :root {
+    --pass:#1e7e34; --fail:#b02a37; --warn:#997404; --nt:#6c757d; --err:#b4530a;
+    --ink:#1c2530; --muted:#5b6774; --line:#dde3ea; --bg:#f5f7fa; --card:#ffffff;
+  }
+  * { box-sizing: border-box; }
+  body { font: 14px/1.55 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         margin: 0; background: var(--bg); color: var(--ink); }
+  header { background: #1f4e79; color: #fff; padding: 22px 32px; }
+  header h1 { margin: 0 0 4px; font-size: 21px; }
+  header .sub { opacity: .85; font-size: 12.5px; }
+  main { max-width: 1400px; margin: 0 auto; padding: 24px 32px 60px; }
+  h2 { font-size: 16px; margin: 34px 0 12px; border-bottom: 2px solid var(--line); padding-bottom: 6px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; }
+  .card .num { font-size: 30px; font-weight: 700; }
+  .card .lbl { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+  .card.pass .num { color: var(--pass); } .card.fail .num { color: var(--fail); }
+  .card.warn .num { color: var(--warn); } .card.nt .num { color: var(--nt); }
+  .card.err .num { color: var(--err); }
+  .meta-table td { padding: 3px 14px 3px 0; color: var(--muted); font-size: 12.5px; }
+  .meta-table td:first-child { font-weight: 600; color: var(--ink); }
+  table.matrix { width: 100%; border-collapse: collapse; background: var(--card);
+                 border: 1px solid var(--line); font-size: 12.5px; }
+  table.matrix th { background: #eef2f7; text-align: left; padding: 8px 10px; position: sticky; top: 0;
+                    border-bottom: 2px solid var(--line); }
+  table.matrix td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-weight: 600; font-size: 11.5px;
+           color: #fff; white-space: nowrap; }
+  .badge.Pass { background: var(--pass); } .badge.Fail { background: var(--fail); }
+  .badge.Warning { background: var(--warn); } .badge.Error { background: var(--err); }
+  .badge.NotTested { background: var(--nt); }
+  .ev a { display: block; font-size: 11.5px; word-break: break-all; }
+  .reqid { font-weight: 700; white-space: nowrap; }
+  .muted { color: var(--muted); font-size: 11.5px; }
+  .defect { background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--fail);
+            border-radius: 8px; padding: 12px 16px; margin: 10px 0; }
+  .defect.Minor { border-left-color: var(--warn); }
+  .shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+  .shot { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  .shot img { width: 100%; border: 1px solid var(--line); border-radius: 4px; }
+  .filterbar { margin: 10px 0; }
+  .filterbar button { margin-right: 6px; padding: 5px 14px; border: 1px solid var(--line); background: var(--card);
+                      border-radius: 20px; cursor: pointer; font-size: 12px; }
+  .filterbar button.active { background: #1f4e79; color: #fff; border-color: #1f4e79; }
+  footer { text-align: center; color: var(--muted); font-size: 11.5px; padding: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>{{ title }}</h1>
+  <div class="sub">{{ organization }} · {{ system_under_test }} · Run {{ manifest.run_id }} · Generated {{ generated_at }}</div>
+</header>
+<main>
+
+  <h2>1 · Executive Summary</h2>
+  <table class="meta-table">
+    <tr><td>System under test</td><td>{{ manifest.base_url }}</td></tr>
+    <tr><td>Specification</td><td>{{ manifest.spec_document }} (SHA-256 {{ manifest.spec_sha256[:16] }}…)</td></tr>
+    <tr><td>Execution window (UTC)</td><td>{{ manifest.started_at }} → {{ manifest.finished_at }}</td></tr>
+    <tr><td>Tool version</td><td>webval {{ manifest.tool_version }}</td></tr>
+  </table>
+  <div class="cards">
+    <div class="card"><div class="num">{{ summary.total }}</div><div class="lbl">Total Requirements</div></div>
+    <div class="card pass"><div class="num">{{ summary.passed }}</div><div class="lbl">Passed</div></div>
+    <div class="card fail"><div class="num">{{ summary.failed }}</div><div class="lbl">Failed</div></div>
+    <div class="card warn"><div class="num">{{ summary.warnings }}</div><div class="lbl">Warnings</div></div>
+    <div class="card err"><div class="num">{{ summary.errors }}</div><div class="lbl">Errors</div></div>
+    <div class="card nt"><div class="num">{{ summary.not_tested }}</div><div class="lbl">Not Tested</div></div>
+    <div class="card"><div class="num">{{ summary.pass_rate }}%</div><div class="lbl">Pass Rate</div></div>
+  </div>
+
+  <h2>2 · Traceability Matrix</h2>
+  <div class="filterbar" id="filters">
+    <button data-f="all" class="active">All</button>
+    <button data-f="Pass">Pass</button>
+    <button data-f="Fail">Fail</button>
+    <button data-f="Warning">Warning</button>
+    <button data-f="Error">Error</button>
+    <button data-f="NotTested">Not Tested</button>
+  </div>
+  <table class="matrix">
+    <thead><tr>
+      <th>ID</th><th>Category</th><th>Requirement</th><th>Expected</th>
+      <th>Actual</th><th>Status</th><th>Evidence</th><th>Timestamp</th>
+    </tr></thead>
+    <tbody>
+    {% for row in rows %}
+      <tr data-status="{{ row.status_key }}">
+        <td class="reqid">{{ row.id }}<div class="muted">{{ row.source_doc }} p.{{ row.source_page }} · {{ row.method }}</div></td>
+        <td>{{ row.category }}</td>
+        <td>{{ row.requirement }}</td>
+        <td>{{ row.expected }}</td>
+        <td>{{ row.actual }}{% if row.details %}<div class="muted">{{ row.details }}</div>{% endif %}
+            {% if row.page_url %}<div class="muted"><a href="{{ row.page_url }}">{{ row.page_url }}</a></div>{% endif %}</td>
+        <td><span class="badge {{ row.status_key }}">{{ row.status }}</span></td>
+        <td class="ev">{% for ev in row.evidence %}<a href="{{ ev.href }}" title="{{ ev.sha256 }}">{{ ev.label }}</a>{% endfor %}</td>
+        <td class="muted">{{ row.timestamp }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>3 · Defect Summary</h2>
+  {% if defects %}
+    {% for d in defects %}
+    <div class="defect {{ d.severity }}">
+      <strong>{{ d.requirement_id }}</strong> · {{ d.category }} · <em>{{ d.severity }}</em><br>
+      {{ d.summary }}
+      {% if d.page_url %}<div class="muted"><a href="{{ d.page_url }}">{{ d.page_url }}</a></div>{% endif %}
+      {% if d.evidence_paths %}<div class="muted">Evidence: {% for p in d.evidence_paths %}<a href="{{ p }}">{{ p }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</div>{% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+    <p>No defects — all executed requirements passed.</p>
+  {% endif %}
+
+  <h2>4 · Failed Requirement Screenshots</h2>
+  {% if failed_shots %}
+  <div class="shots">
+    {% for shot in failed_shots %}
+    <div class="shot">
+      <strong>{{ shot.requirement_id }}</strong> <span class="badge {{ shot.status_key }}">{{ shot.status }}</span>
+      <div class="muted">{{ shot.description }}</div>
+      <a href="{{ shot.href }}"><img src="{{ shot.href }}" alt="{{ shot.requirement_id }} evidence screenshot" loading="lazy"></a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p>No failed requirements with screenshot evidence.</p>
+  {% endif %}
+
+  <h2>5 · Evidence References</h2>
+  <p class="muted">All artifacts are stored under the run directory with SHA-256 integrity hashes recorded in
+     <code>evidence/logs/evidence_ledger.jsonl</code>. The execution log is at <code>evidence/logs/execution.log</code>.
+     Machine-readable results: <code>results.json</code>. Traceability matrix: <code>traceability_matrix.xlsx</code>.</p>
+
+</main>
+<footer>Generated by webval {{ manifest.tool_version }} · {{ generated_at }} · For QA/UAT and regulated review</footer>
+<script>
+  document.querySelectorAll('#filters button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('#filters button').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      var f = btn.dataset.f;
+      document.querySelectorAll('table.matrix tbody tr').forEach(function (tr) {
+        tr.style.display = (f === 'all' || tr.dataset.status === f) ? '' : 'none';
+      });
+    });
+  });
+</script>
+</body>
+</html>
