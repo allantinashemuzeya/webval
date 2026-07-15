@@ -50,6 +50,7 @@ class DeviceConfig(BaseModel):
 
 class BrowserConfig(BaseModel):
     engine: str = "chromium"
+    channel: str | None = None  # "chrome" | "msedge" to force the installed browser; None = auto
     headless: bool = True
     timeout_ms: int = 30_000
     navigation_timeout_ms: int = 45_000

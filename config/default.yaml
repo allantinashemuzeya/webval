@@ -29,6 +29,7 @@ auth:
 
 browser:
   engine: "chromium"
+  channel: null                # null = bundled Chromium, falling back to installed Chrome/Edge
   headless: true
   timeout_ms: 30000
   navigation_timeout_ms: 45000

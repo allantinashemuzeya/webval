@@ -54,13 +54,41 @@ class BrowserSession:
     async def start(self) -> None:
         self._playwright = await async_playwright().start()
         engine = getattr(self._playwright, self._settings.browser.engine)
-        self._browser = await engine.launch(
-            headless=self._settings.browser.headless,
-            slow_mo=self._settings.browser.slow_mo_ms,
-        )
+        launch_opts: dict[str, Any] = {
+            "headless": self._settings.browser.headless,
+            "slow_mo": self._settings.browser.slow_mo_ms,
+        }
+        # Restricted networks often block Playwright's browser CDN. When the
+        # bundled browser is absent, fall back to the machine's installed
+        # Chrome/Edge via launch channels (no download, no admin rights).
+        configured = self._settings.browser.channel
+        channels: list[str | None] = [configured] if configured else [None, "chrome", "msedge"]
+        last_error: Exception | None = None
+        for channel in channels:
+            try:
+                opts = {**launch_opts, "channel": channel} if channel else launch_opts
+                self._browser = await engine.launch(**opts)
+                break
+            except Exception as exc:
+                message = str(exc)
+                last_error = exc
+                if "Executable doesn't exist" in message or "playwright install" in message:
+                    log.warning(
+                        "Browser channel %s not available — trying next fallback",
+                        channel or "bundled chromium",
+                    )
+                    continue
+                raise
+        else:
+            raise RuntimeError(
+                "No usable browser found. Either run `playwright install chromium` on a network "
+                "that can reach cdn.playwright.dev, or install/keep Google Chrome or Microsoft Edge "
+                f"(webval uses them automatically). Last error: {last_error}"
+            )
         log.info(
-            "Browser started (%s, headless=%s, auth=%s)",
+            "Browser started (%s%s, headless=%s, auth=%s)",
             self._settings.browser.engine,
+            f" via channel={channel}" if channel else "",
             self._settings.browser.headless,
             self._settings.auth.mode,
         )

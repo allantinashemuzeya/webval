@@ -99,7 +99,17 @@ class SiteDiscovery:
         try:
             return await self._visit(url, depth)
         except PlaywrightError as exc:
-            log.error("Failed to capture %s after retries: %s", url, exc)
+            message = str(exc)
+            if "ERR_HTTP_RESPONSE_CODE_FAILURE" in message or "ERR_INVALID_AUTH_CREDENTIALS" in message:
+                # Chrome/Edge channels fail navigation outright on auth errors
+                # instead of rendering the 401 page.
+                log.error(
+                    "Navigation to %s failed with an HTTP error response — this usually means the "
+                    "HTTP Basic credentials are wrong or missing (check WEBVAL_AUTH__* in .env)",
+                    url,
+                )
+            else:
+                log.error("Failed to capture %s after retries: %s", url, exc)
             return PageSnapshot(url=url, depth=depth, status=None, title=f"[capture failed: {exc}"[:200] + "]")
         except Exception:
             log.exception("Unexpected error capturing %s", url)

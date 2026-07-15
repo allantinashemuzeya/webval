@@ -91,7 +91,7 @@ class TestAuthenticatedCrawl:
         assert home.html_path and (tmp_path / "run" / home.html_path).is_file()
         assert store.verify_ledger() == []
 
-    async def test_wrong_credentials_surface_401(self, auth_server: str, tmp_path: Path):
+    async def test_wrong_credentials_surface_auth_failure(self, auth_server: str, tmp_path: Path):
         settings = Settings(
             site={"base_url": auth_server, "max_pages": 2},
             auth={"mode": "http_basic", "username": "wrong", "password": "wrong"},
@@ -99,4 +99,7 @@ class TestAuthenticatedCrawl:
         store = EvidenceStore(tmp_path / "run")
         async with BrowserSession(settings) as session:
             site_map = await SiteDiscovery(settings, session, store).discover()
-        assert site_map.pages[0].status == 401
+        page = site_map.pages[0]
+        # Bundled Chromium renders the 401; Chrome/Edge channels abort navigation
+        # with ERR_HTTP_RESPONSE_CODE_FAILURE. Both must surface, never crash.
+        assert page.status == 401 or "ERR_HTTP_RESPONSE_CODE_FAILURE" in page.title

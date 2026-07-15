@@ -177,7 +177,14 @@ def setup() -> None:
     import sys
 
     console.print("[bold]1/3[/bold] Installing Playwright Chromium (skipped if present)...")
-    subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
+    try:
+        subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
+    except subprocess.CalledProcessError:
+        console.print(
+            "    [yellow]Browser download failed[/yellow] — cdn.playwright.dev is unreachable "
+            "(common on corporate networks). Not a problem: webval automatically uses the "
+            "machine's installed Chrome or Microsoft Edge instead."
+        )
 
     console.print("[bold]2/3[/bold] Checking tesseract OCR engine...")
     from webval.pdf_parser.ocr import find_tesseract, get_backend
