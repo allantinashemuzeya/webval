@@ -23,7 +23,7 @@ from playwright.async_api import (
 )
 
 from webval.config import DeviceConfig, Settings
-from webval.utils import get_logger
+from webval.utils import detect_proxy, get_logger
 
 log = get_logger("crawler.browser")
 
@@ -76,10 +76,20 @@ class BrowserSession:
         # Chrome/Edge via launch channels (no download, no admin rights).
         configured = self._settings.browser.channel
         channels: list[str | None] = [configured] if configured else [None, "chrome", "msedge"]
+        # Corporate networks often only allow traffic through a proxy. An
+        # explicit browser.proxy applies everywhere; otherwise the detected
+        # system proxy is forced only on the bundled Chromium — installed
+        # Chrome/Edge channels already follow system/PAC settings natively.
+        explicit_proxy = self._settings.browser.proxy
+        detected_proxy = None if explicit_proxy else detect_proxy()
         last_error: Exception | None = None
+        proxy: str | None = None
         for channel in channels:
             try:
-                opts = {**launch_opts, "channel": channel} if channel else launch_opts
+                opts = {**launch_opts, "channel": channel} if channel else dict(launch_opts)
+                proxy = explicit_proxy or (detected_proxy if channel is None else None)
+                if proxy:
+                    opts["proxy"] = {"server": proxy}
                 self._browser = await engine.launch(**opts)
                 break
             except Exception as exc:
@@ -100,9 +110,10 @@ class BrowserSession:
             )
         user = self._settings.auth.username
         log.info(
-            "Browser started (%s%s, headless=%s, auth=%s%s)",
+            "Browser started (%s%s%s, headless=%s, auth=%s%s)",
             self._settings.browser.engine,
             f" via channel={channel}" if channel else "",
+            f", proxy={proxy}" if proxy else "",
             self._settings.browser.headless,
             self._settings.auth.mode,
             f", user={user[:2]}***, password=***{len(self._settings.auth.password.get_secret_value())} chars"

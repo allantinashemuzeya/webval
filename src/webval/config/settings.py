@@ -51,6 +51,11 @@ class DeviceConfig(BaseModel):
 class BrowserConfig(BaseModel):
     engine: str = "chromium"
     channel: str | None = None  # "chrome" | "msedge" to force the installed browser; None = auto
+    # Proxy for corporate networks: "http://host:port". None = auto-detect
+    # (HTTPS_PROXY/HTTP_PROXY env vars, then Windows registry proxy) for the
+    # bundled Chromium; installed Chrome/Edge channels follow system/PAC
+    # settings natively unless this is set explicitly.
+    proxy: str | None = None
     headless: bool = True
     timeout_ms: int = 30_000
     navigation_timeout_ms: int = 45_000

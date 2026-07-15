@@ -59,7 +59,7 @@ mkdir C:\webval ; cd C:\webval
 python -m venv .venv ; .\.venv\Scripts\Activate.ps1
 
 # 3. Install a PINNED release (reproducible — not a moving branch)
-pip install git+https://github.com/allantinashemuzeya/webval.git@v1.0.1
+pip install git+https://github.com/allantinashemuzeya/webval.git@v1.0.2
 
 # 4. One-time setup (browser download failure is OK — Chrome/Edge is used instead)
 webval setup
@@ -78,6 +78,15 @@ webval run "C:\path\to\Verified files.pdf"
 
 If `webval doctor` passes, a run cannot fail for environmental reasons.
 Always run `webval` from `C:\webval` (the folder containing `.env`).
+
+**Proxy-only networks** ("the site opens in my browser, but webval can't reach it"):
+corporate networks often block direct connections — even DNS — and only allow traffic
+through the company proxy. `webval doctor` handles this automatically: it retries via the
+detected system proxy (`HTTPS_PROXY`/`HTTP_PROXY` env vars, then the Windows registry
+proxy) and finally via a real Chrome/Edge navigation, which follows the same system/PAC
+proxy settings as your desktop browser. The crawler connects the same way, and doctor
+tells you if a `.env` line (`WEBVAL_BROWSER__CHANNEL=chrome` or
+`WEBVAL_BROWSER__PROXY=http://host:port`) is needed to pin the working route.
 
 ## Outputs (per run)
 
