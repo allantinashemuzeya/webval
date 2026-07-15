@@ -38,12 +38,46 @@ Override per run with `--base-url` or a project YAML via `--config`.
 
 | Command | Purpose |
 |---|---|
+| `webval doctor` | Preflight diagnostics: credentials, site reachability + auth (real HTTP request), browser, OCR. Run first on any new machine/network — every problem prints its exact fix. |
 | `webval run spec.pdf` | Full pipeline (phases 1–16). Exit code 1 if any requirement fails — CI-friendly. |
 | `webval extract spec.pdf` | Phase 1 only: print + save the extracted requirement set. Use this to review the baseline before a run. |
 | `webval crawl` | Phases 2–3 only: authentication + discovery smoke test (writes `sitemap.json`). |
 | `webval report runs/<id>/results.json` | Regenerate Excel/HTML reports from stored results. |
 
 Useful flags: `--headed` (watch the browser), `--config project.yaml`, `--output <dir>`.
+
+## Reliable setup on locked-down Windows (no admin rights)
+
+Corporate machines fail in predictable ways (blocked CDNs, OneDrive placeholder folders,
+Notepad BOM in `.env`, proxies). This sequence avoids all of them:
+
+```powershell
+# 1. Work OUTSIDE OneDrive-synced folders
+mkdir C:\webval ; cd C:\webval
+
+# 2. Venv with the Store Python (no admin needed)
+python -m venv .venv ; .\.venv\Scripts\Activate.ps1
+
+# 3. Install a PINNED release (reproducible — not a moving branch)
+pip install git+https://github.com/allantinashemuzeya/webval.git@v1.0.1
+
+# 4. One-time setup (browser download failure is OK — Chrome/Edge is used instead)
+webval setup
+
+# 5. Put credentials in C:\webval\.env  (exact format, no spaces around '=';
+#    '#' and quotes inside the password are safe)
+#      WEBVAL_AUTH__USERNAME=...
+#      WEBVAL_AUTH__PASSWORD=...
+
+# 6. Verify EVERYTHING before running — each problem prints its fix
+webval doctor
+
+# 7. Only when doctor passes:
+webval run "C:\path\to\Verified files.pdf"
+```
+
+If `webval doctor` passes, a run cannot fail for environmental reasons.
+Always run `webval` from `C:\webval` (the folder containing `.env`).
 
 ## Outputs (per run)
 
