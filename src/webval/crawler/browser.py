@@ -30,6 +30,10 @@ log = get_logger("crawler.browser")
 DESKTOP_PROFILE = "Desktop Chrome"
 
 
+class CredentialsMissingError(RuntimeError):
+    """Raised before any crawl work when required auth is not configured."""
+
+
 class BrowserSession:
     """Owns the Playwright browser and hands out authenticated contexts/pages."""
 
@@ -52,6 +56,15 @@ class BrowserSession:
         await self.close()
 
     async def start(self) -> None:
+        if self._settings.auth.mode == "http_basic" and (
+            not self._settings.auth.username or not self._settings.auth.password.get_secret_value()
+        ):
+            raise CredentialsMissingError(
+                "HTTP Basic Auth credentials are missing. Create a .env file in the folder you run "
+                "webval from (or set environment variables) containing:\n"
+                "  WEBVAL_AUTH__USERNAME=...\n  WEBVAL_AUTH__PASSWORD=...\n"
+                "Without them every page fetch fails and the run produces no site screenshots."
+            )
         self._playwright = await async_playwright().start()
         engine = getattr(self._playwright, self._settings.browser.engine)
         launch_opts: dict[str, Any] = {
@@ -85,12 +98,15 @@ class BrowserSession:
                 "that can reach cdn.playwright.dev, or install/keep Google Chrome or Microsoft Edge "
                 f"(webval uses them automatically). Last error: {last_error}"
             )
+        user = self._settings.auth.username
         log.info(
-            "Browser started (%s%s, headless=%s, auth=%s)",
+            "Browser started (%s%s, headless=%s, auth=%s%s)",
             self._settings.browser.engine,
             f" via channel={channel}" if channel else "",
             self._settings.browser.headless,
             self._settings.auth.mode,
+            f", user={user[:2]}***, password=***{len(self._settings.auth.password.get_secret_value())} chars"
+            if self._settings.auth.mode == "http_basic" else "",
         )
 
     async def close(self) -> None:

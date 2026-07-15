@@ -120,8 +120,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="WEBVAL_",
         env_nested_delimiter="__",
-        env_file=".env",
-        env_file_encoding="utf-8",
+        # .env is parsed exclusively by _env_overrides (verbatim values, BOM-safe,
+        # '#'-safe) — not by pydantic's dotenv reader, whose comment rules differ.
         extra="ignore",
     )
 
@@ -184,20 +184,27 @@ def _env_overrides() -> dict[str, Any]:
         for part in path[:-1]:
             cursor = cursor.setdefault(part, {})
         cursor[path[-1]] = value
-    # .env file support for credentials when not exported
+    # .env file support for credentials when not exported.
+    # utf-8-sig strips the BOM Windows Notepad prepends (a BOM otherwise makes
+    # the first line's key unparseable, silently dropping that credential).
     env_file = Path(".env")
     if env_file.is_file():
-        for line in env_file.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
+        for line in env_file.read_text(encoding="utf-8-sig").splitlines():
+            line = line.strip().lstrip("﻿")
             if not line or line.startswith("#") or "=" not in line:
                 continue
             key, _, value = line.partition("=")
             key = key.strip()
             if not key.startswith(prefix) or key in os.environ:
                 continue
+            # Keep values verbatim (passwords may contain '#', '=', spaces...);
+            # only strip a matching pair of surrounding quotes.
+            value = value.strip()
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+                value = value[1:-1]
             path = key[len(prefix):].lower().split("__")
             cursor = out
             for part in path[:-1]:
                 cursor = cursor.setdefault(part, {})
-            cursor.setdefault(path[-1], value.strip())
+            cursor.setdefault(path[-1], value)
     return out

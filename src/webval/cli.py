@@ -65,8 +65,14 @@ def run(
     if headed:
         settings.browser.headless = False
 
+    from webval.crawler.browser import CredentialsMissingError
+
     pipeline = ValidationPipeline(settings, output_root=output)
-    validation_run = asyncio.run(pipeline.execute(pdfs))
+    try:
+        validation_run = asyncio.run(pipeline.execute(pdfs))
+    except CredentialsMissingError as exc:
+        console.print(f"[bold red]Cannot start:[/bold red] {exc}")
+        raise typer.Exit(code=2) from None
 
     console.print(_summary_table(validation_run))
     console.print(f"\n[bold]Run directory:[/bold] {pipeline.run_dir}")
@@ -136,7 +142,13 @@ def crawl(
             site_map = await SiteDiscovery(settings, session, store).discover()
             (run_dir / "sitemap.json").write_text(site_map.model_dump_json(indent=2), encoding="utf-8")
 
-    asyncio.run(_crawl())
+    from webval.crawler.browser import CredentialsMissingError
+
+    try:
+        asyncio.run(_crawl())
+    except CredentialsMissingError as exc:
+        console.print(f"[bold red]Cannot start:[/bold red] {exc}")
+        raise typer.Exit(code=2) from None
     console.print(f"Crawl complete. Snapshots + sitemap.json in [bold]{run_dir}[/bold]")
 
 
