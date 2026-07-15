@@ -73,7 +73,12 @@ class VisualValidator(BaseValidator):
             candidates.append((distance, shot_path, page.url))
 
         if not candidates:
-            return self.result(requirement, Status.ERROR, "No page screenshots available for comparison")
+            return self.result(
+                requirement, Status.ERROR,
+                "No live-site screenshots exist to compare against — the crawl captured 0 pages. "
+                "This is a site-access problem (credentials/VPN/proxy), not a PDF problem. "
+                "Check evidence/logs/execution.log and run `webval crawl` to test access.",
+            )
 
         distance, best_path, best_url = min(candidates, key=lambda c: c[0])
         diff_evidence = self._render_diff(requirement, spec_img, best_path)

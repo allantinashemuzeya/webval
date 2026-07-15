@@ -76,6 +76,15 @@ class ValidationPipeline:
         async with BrowserSession(self.settings) as session:
             discovery = SiteDiscovery(self.settings, session, self.store)
             site_map = await discovery.discover()
+            usable = [p for p in site_map.pages if p.status and p.status < 400]
+            if not usable:
+                log.error(
+                    "CRAWL FAILED: no page could be fetched from %s. Every validation below will "
+                    "fail as a consequence. Most common causes: wrong/missing WEBVAL_AUTH__USERNAME / "
+                    "WEBVAL_AUTH__PASSWORD in .env, or the site requires VPN/proxy access from this machine. "
+                    "Test quickly with: webval crawl",
+                    self.settings.site.base_url,
+                )
 
             ctx = ValidationContext(
                 settings=self.settings,
