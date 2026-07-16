@@ -169,11 +169,13 @@ def _defect_log_sheet(ws: Worksheet, run: ValidationRun, cfg: ReportConfig) -> N
             if hint in blob:
                 device = hint
                 break
+        # Plain language for content authors: what should be there (per the
+        # verified file) vs what the page shows. Technical details stay in the
+        # Traceability Matrix sheet.
         requirement_text = req.requirement if req else ""
         description = (
             (f"{requirement_text}\n" if requirement_text else "")
-            + f"Expected: {res.expected}\nActual: {res.actual}"
-            + (f"\nDetails: {res.details}" if res.details else "")
+            + f"Expected: {res.expected}\nFound: {res.actual}"
         )
         screenshots = "\n".join(
             e.path for e in res.evidence
@@ -204,8 +206,6 @@ def _defect_log_sheet(ws: Worksheet, run: ValidationRun, cfg: ReportConfig) -> N
             cell = ws.cell(row=row, column=col, value=value)
             cell.border = _THIN
             cell.alignment = Alignment(vertical="top", wrap_text=col in (10, 16, 17))
-        sev_cell = ws.cell(row=row, column=13)
-        sev_cell.fill = _STATUS_FILL[Status.FAIL if values[12] == "Major" else Status.WARNING]
         row += 1
 
 

@@ -107,8 +107,10 @@ class ReportConfig(BaseModel):
     organization: str = "QA / Validation"
     system_under_test: str = ""
     formats: list[str] = Field(default_factory=lambda: ["excel", "html", "json"])
-    # Defect-log sheet fields (QA tracker format)
-    qa_name: str = "Automated (webval)"
+    # Defect-log sheet fields (QA tracker format). QA name is intentionally
+    # blank by default — set report.qa_name (or fill the column in) so rows
+    # carry the tester's real name, not tool jargon.
+    qa_name: str = ""
     phase: str = "UAT"
     environment: str = "Preprod"
     round_of_testing: str = "1"

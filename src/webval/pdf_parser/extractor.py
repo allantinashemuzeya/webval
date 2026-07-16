@@ -135,7 +135,7 @@ class PdfExtractor:
         """Locate annotation keywords and re-OCR each callout crop at 3x."""
         from PIL import Image, ImageOps
 
-        keywords = {"alt", "links", "link", "clicking"}
+        keywords = {"alt", "links", "link", "clicking", "title", "description"}
         hits: list[tuple[int, int]] = []
         for hit in backend.locate(gray, keywords):  # type: ignore[attr-defined]
             # skip near-duplicates (same callout matched via two keywords)

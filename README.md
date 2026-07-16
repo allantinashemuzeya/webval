@@ -24,12 +24,24 @@ webval run spec1.pdf spec2.pdf ...   # accepts MULTIPLE PDFs -> one merged trace
 ### Annotated-proof PDFs (image-only)
 
 Specs that are photos/screenshots of annotated proofs (boxed callouts like
-`Links to: <url>`, `Global alt text: ...`, `Clicking on "X" anchor links to ...`) are handled
-automatically: pages with no text layer are OCR'd (two-pass: body text, then each callout box is
-cropped, enlarged 3x, and re-read), and the annotation pass turns the callouts into Link / Anchor /
-Accessibility requirements. Each embedded screenshot also becomes a visual-comparison requirement
-(capped at *Warning* for photo sources, since monitor photos can't be pixel-matched).
-OCR output is draft quality — review `webval extract` output before a formal run.
+`Links to: <url>`, `Global alt text: ...`, `Clicking on "X" anchor links to ...`,
+`Page title: ...`, `Meta description: ...`, and approval code+date stamps like
+`US-PLU-2300123 06/26`) are handled automatically: pages with no text layer are OCR'd
+(two-pass: body text, then each callout box is cropped, enlarged 3x, and re-read), and the
+annotation pass turns the callouts into simple, actionable checks:
+
+| Verified-file annotation | What is checked on the live page |
+|---|---|
+| `Page title: ...` | `<title>` matches |
+| `Meta description: ...` | meta description matches |
+| highlighted text / code + date | text appears on the page unchanged |
+| `Links to: <url>` | the link exists and its target loads |
+| `Clicking on "X" anchor links to ...` | the button/anchor exists, its label matches, and it works |
+| `alt text: ...` | an image exposes that alt text in the HTML |
+
+Photo proofs are **not** pixel-compared against the live page (a photo of a monitor can never
+match a browser screenshot — it only produced noise). OCR output is draft quality — review
+`webval extract` output before a formal run.
 
 The default target (`config/default.yaml`) is `https://usim.preprod.sbx.us.pluvicto.com/`.
 Override per run with `--base-url` or a project YAML via `--config`.
@@ -64,7 +76,7 @@ mkdir C:\webval ; cd C:\webval
 python -m venv .venv ; .\.venv\Scripts\Activate.ps1
 
 # 3. Install a PINNED release (reproducible — not a moving branch)
-pip install git+https://github.com/allantinashemuzeya/webval.git@v1.0.3
+pip install git+https://github.com/allantinashemuzeya/webval.git@v1.1.0
 
 # 4. One-time setup (browser download failure is OK — Chrome/Edge is used instead)
 webval setup

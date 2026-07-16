@@ -305,6 +305,31 @@ class RequirementEngine:
                         source=source.model_copy(update={"raw_text": f"alt text: {alt.alt}"}),
                     )
                 )
+            for meta in proof_annotations.extract_metadata_annotations(page.text):
+                field_label = "Page title" if meta.field == "title" else "Meta description"
+                add(
+                    Requirement(
+                        id=auto.next(),
+                        category=RequirementCategory.METADATA,
+                        requirement=f"{field_label} is “{meta.value}”",
+                        expected=f"{field_label} matches the verified file",
+                        target_text=meta.value,
+                        keywords=_keywords(meta.value),
+                        source=source.model_copy(update={"raw_text": f"{field_label}: {meta.value}"}),
+                    )
+                )
+            for code in proof_annotations.extract_code_annotations(page.text):
+                add(
+                    Requirement(
+                        id=auto.next(),
+                        category=RequirementCategory.CONTENT,
+                        requirement=f"Code and date “{code.text}” appears on the page",
+                        expected="The approval code and date shown in the verified file appear unchanged",
+                        target_text=code.text,
+                        keywords=_keywords(code.text),
+                        source=source.model_copy(update={"raw_text": code.text}),
+                    )
+                )
         return out
 
     # ------------------------------------------------------------ pass 4: links
@@ -354,6 +379,12 @@ class RequirementEngine:
             return []
         out: list[Requirement] = []
         for page in doc.pages:
+            # Photos of annotated proofs (OCR pages) can't be pixel-compared
+            # against clean browser screenshots — the boxed callouts, not the
+            # photo itself, carry the checks. Comparing them only produces
+            # noise rows nobody can action, so skip them entirely.
+            if page.ocr:
+                continue
             for image in page.images:
                 statement = (
                     f"Rendered page matches specification image on PDF page {image.page_number}"
@@ -364,11 +395,6 @@ class RequirementEngine:
                     continue
                 seen.add(key)
                 keywords = _keywords(image.caption) if image.caption else []
-                # Photos of annotated proofs (OCR pages) can't be pixel-compared
-                # against clean browser screenshots; mark them advisory so the
-                # visual validator caps the outcome at Warning for human review.
-                if page.ocr:
-                    keywords = [*keywords, "photo-proof"]
                 out.append(
                     Requirement(
                         id=auto.next(),
