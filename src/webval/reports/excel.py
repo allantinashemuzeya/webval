@@ -169,9 +169,10 @@ def _defect_log_sheet(ws: Worksheet, run: ValidationRun, cfg: ReportConfig) -> N
             if hint in blob:
                 device = hint
                 break
+        requirement_text = req.requirement if req else ""
         description = (
-            f"Automated check of {res.requirement_id}: {req.requirement if req else ''}\n"
-            f"Expected: {res.expected}\nActual: {res.actual}"
+            (f"{requirement_text}\n" if requirement_text else "")
+            + f"Expected: {res.expected}\nActual: {res.actual}"
             + (f"\nDetails: {res.details}" if res.details else "")
         )
         screenshots = "\n".join(

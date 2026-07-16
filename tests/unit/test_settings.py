@@ -10,6 +10,7 @@ class TestSettings:
         s = Settings()
         assert s.browser.engine == "chromium"
         assert s.validation.retry_attempts == 3
+        assert s.site.max_depth == 0  # single-page validation by default
         assert len(s.devices) == 3
 
     def test_allowed_hosts_default_from_base_url(self):

@@ -24,7 +24,9 @@ class SiteConfig(BaseModel):
     allowed_hosts: list[str] = Field(default_factory=list)
     ignore_https_errors: bool = True
     max_pages: int = 50
-    max_depth: int = 3
+    # 0 = validate ONLY the given page (each proof PDF annotates one page).
+    # Raise to follow links N levels deep when a spec covers a whole section.
+    max_depth: int = 0
     exclude_patterns: list[str] = Field(default_factory=lambda: ["logout", "signout"])
 
     @model_validator(mode="after")

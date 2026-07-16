@@ -157,7 +157,33 @@ class LinkValidator(BaseValidator):
                 chain.append(response.url)
             return response.status, chain, ""
         except Exception as exc:
-            return None, [url], str(exc)
+            # Direct requests bypass the browser's system/PAC proxy — on
+            # proxy-only corporate networks they fail (even DNS) while real
+            # navigation works, so re-check the link in a browser tab before
+            # reporting it broken.
+            status, chain, nav_error = await self._check_via_navigation(url)
+            if status is not None:
+                return status, chain, ""
+            return None, [url], f"{exc} (browser navigation: {nav_error})"
+
+    async def _check_via_navigation(self, url: str) -> tuple[int | None, list[str], str]:
+        """Fetch the URL in a real browser tab (follows system proxy settings)."""
+        page = await self.ctx.session.new_page()
+        try:
+            response = await page.goto(
+                url,
+                timeout=self.ctx.settings.validation.link_timeout_s * 1000,
+                wait_until="domcontentloaded",
+            )
+            status = response.status if response else None
+            chain = [url]
+            if page.url != url:
+                chain.append(page.url)
+            return status, chain, ""
+        except Exception as exc:
+            return None, [url], str(exc).splitlines()[0]
+        finally:
+            await page.close()
 
     @staticmethod
     def _same_destination(href: str, chain: list[str], expected: str) -> bool:

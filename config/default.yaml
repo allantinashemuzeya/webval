@@ -16,7 +16,9 @@ site:
   allowed_hosts: []
   ignore_https_errors: true    # internal/preprod environments with self-signed certs
   max_pages: 50
-  max_depth: 3
+  # 0 = validate only the given page (default; each proof PDF annotates one
+  # page). Raise to follow links N levels deep, or pass --depth on the CLI.
+  max_depth: 0
   # URL substrings to skip during discovery (logout links, mailto handled separately)
   exclude_patterns:
     - "logout"

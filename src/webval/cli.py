@@ -53,6 +53,9 @@ def run(
     ),
     config: Path | None = _CONFIG_OPT,
     base_url: str | None = typer.Option(None, help="Override site.base_url"),
+    depth: int | None = typer.Option(
+        None, help="Crawl depth: 0 = only the given page (default), N = follow links N levels"
+    ),
     headed: bool = typer.Option(False, help="Run the browser headed (debugging)"),
     output: Path | None = typer.Option(None, help="Output root (default: runs/)"),
 ) -> None:
@@ -64,6 +67,8 @@ def run(
         settings.site.base_url = base_url
         settings.site.allowed_hosts = []
         settings.site = settings.site.model_validate(settings.site.model_dump())
+    if depth is not None:
+        settings.site.max_depth = depth
     if headed:
         settings.browser.headless = False
 
@@ -121,6 +126,9 @@ def extract(
 def crawl(
     config: Path | None = _CONFIG_OPT,
     base_url: str | None = typer.Option(None, help="Override site.base_url"),
+    depth: int | None = typer.Option(
+        None, help="Crawl depth: 0 = only the given page (default), N = follow links N levels"
+    ),
     output: Path | None = typer.Option(None, help="Output root (default: runs/)"),
 ) -> None:
     """Phases 2-3 only: authenticate, discover pages, capture snapshots."""
@@ -134,6 +142,8 @@ def crawl(
         settings.site.base_url = base_url
         settings.site.allowed_hosts = []
         settings.site = settings.site.model_validate(settings.site.model_dump())
+    if depth is not None:
+        settings.site.max_depth = depth
 
     run_dir = (output or Path(settings.evidence.root)) / make_run_id(settings.site.base_url, utc_now_iso())
     store = EvidenceStore(run_dir)

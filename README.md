@@ -34,6 +34,10 @@ OCR output is draft quality — review `webval extract` output before a formal r
 The default target (`config/default.yaml`) is `https://usim.preprod.sbx.us.pluvicto.com/`.
 Override per run with `--base-url` or a project YAML via `--config`.
 
+**Validation is single-page by default**: only the page given as `--base-url` is captured and
+validated (each proof PDF annotates one page). Link/anchor targets found on that page are still
+verified individually. To crawl linked pages too, pass `--depth N` (or set `site.max_depth`).
+
 ## CLI
 
 | Command | Purpose |
@@ -44,7 +48,8 @@ Override per run with `--base-url` or a project YAML via `--config`.
 | `webval crawl` | Phases 2–3 only: authentication + discovery smoke test (writes `sitemap.json`). |
 | `webval report runs/<id>/results.json` | Regenerate Excel/HTML reports from stored results. |
 
-Useful flags: `--headed` (watch the browser), `--config project.yaml`, `--output <dir>`.
+Useful flags: `--base-url <page>` (the page to validate), `--depth N` (crawl linked pages; default
+0 = only the given page), `--headed` (watch the browser), `--config project.yaml`, `--output <dir>`.
 
 ## Reliable setup on locked-down Windows (no admin rights)
 
@@ -59,7 +64,7 @@ mkdir C:\webval ; cd C:\webval
 python -m venv .venv ; .\.venv\Scripts\Activate.ps1
 
 # 3. Install a PINNED release (reproducible — not a moving branch)
-pip install git+https://github.com/allantinashemuzeya/webval.git@v1.0.2
+pip install git+https://github.com/allantinashemuzeya/webval.git@v1.0.3
 
 # 4. One-time setup (browser download failure is OK — Chrome/Edge is used instead)
 webval setup
